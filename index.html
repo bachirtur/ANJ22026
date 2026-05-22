@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateforme d'Évaluation Interactive - NSI 2026</title>
+    
+    <!-- CSS Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-light: #f8fafc;
+            --bg-dark: #0f172a;
+            --text-light: #1e293b;
+            --text-dark: #f1f5f9;
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-bg-light: rgba(255, 255, 255, 0.7);
+            --glass-bg-dark: rgba(30, 41, 59, 0.7);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        
+        body { background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 50%, #ede9fe 100%); color: var(--text-light); min-height: 100vh; transition: all 0.3s ease; }
+        body.dark-mode { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); color: var(--text-dark); }
+
+        .glass { background: var(--glass-bg-light); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: var(--radius); box-shadow: var(--shadow); }
+        body.dark-mode .glass { background: var(--glass-bg-dark); }
+
+        /* Layout */
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        /* Home View */
+        #homeView { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        .hero { text-align: center; margin-bottom: 40px; }
+        .hero h1 { font-size: 2.5rem; background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+        .hero p { font-size: 1.1rem; opacity: 0.8; }
+        
+        .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; max-width: 1000px; }
+        @media (max-width: 768px) { .setup-grid { grid-template-columns: 1fr; } }
+
+        .card { padding: 30px; display: flex; flex-direction: column; }
+        .card h2 { font-size: 1.4rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-size: 1rem; transition: all 0.2s; }
+        body.dark-mode .form-group input { background: rgba(0,0,0,0.2); color: white; border-color: rgba(255,255,255,0.1); }
+        .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
+
+        .drop-zone { border: 2px dashed var(--primary); border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 15px; position: relative; }
+        .drop-zone.dragover { background: rgba(37, 99, 235, 0.1); transform: scale(1.02); }
+        .drop-zone i { font-size: 3rem; color: var(--primary); margin-bottom: 10px; }
+        .drop-zone p { color: #64748b; }
+        .file-info { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; color: var(--success); font-size: 0.9rem; }
+        .file-info .remove-file { margin-left: auto; cursor: pointer; color: var(--danger); }
+
+        .btn { padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; font-size: 1rem; }
+        .btn-primary { background: linear-gradient(to right, var(--primary), var(--secondary)); color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: rgba(0,0,0,0.05); color: var(--text-light); }
+        body.dark-mode .btn-secondary { background: rgba(255,255,255,0.1); color: var(--text-dark); }
+        .btn-danger { background: var(--danger); color: white; }
+
+        /* Exam View */
+        #examView { display: none; height: 100vh; flex-direction: column; }
+        .exam-header { padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.05); z-index: 100; }
+        body.dark-mode .exam-header { background: rgba(15, 23, 42, 0.8); border-color: rgba(255,255,255,0.05); }
+        
+        .timer { font-size: 1.5rem; font-weight: 700; font-family: 'Courier New', monospace; color: var(--primary); }
+        .timer.warning { color: var(--warning); }
+        .timer.critical { color: var(--danger); animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        .exam-content { display: flex; flex: 1; overflow: hidden; }
+        .pdf-panel { flex: 1; border-right: 1px solid rgba(0,0,0,0.1); display: flex; flex-direction: column; background: #e2e8f0; position: relative; }
+        body.dark-mode .pdf-panel { background: #1e293b; border-color: rgba(255,255,255,0.1); }
+        
+        .pdf-toolbar { padding: 8px; display: flex; gap: 8px; align-items: center; background: rgba(255,255,255,0.9); border-bottom: 1px solid rgba(0,0,0,0.1); }
+        body.dark-mode .pdf-toolbar { background: rgba(30, 41, 59, 0.9); border-color: rgba(255,255,255,0.1); }
+        .pdf-toolbar button { background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-light); padding: 5px 8px; border-radius: 4px; }
+        body.dark-mode .pdf-toolbar button { color: var(--text-dark); }
+        .pdf-toolbar button:hover { background: rgba(0,0,0,0.1); }
+        .pdf-toolbar span { font-size: 0.9rem; margin: 0 5px; }
+        
+        #pdfCanvasContainer { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 20px; }
+        canvas#pdfRenderer { box-shadow: 0 5px 15px rgba(0,0,0,0.2); max-width: 100%; }
+
+        .answer-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .question-nav { padding: 10px 15px; display: flex; gap: 10px; overflow-x: auto; background: rgba(255,255,255,0.5); border-bottom: 1px solid rgba(0,0,0,0.1); }
+        body.dark-mode .question-nav { background: rgba(30, 41, 59, 0.5); border-color: rgba(255,255,255,0.1); }
+        .q-tab { padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; background: rgba(0,0,0,0.05); white-space: nowrap; transition: all 0.2s; }
+        body.dark-mode .q-tab { background: rgba(255,255,255,0.1); }
+        .q-tab.active { background: var(--primary); color: white; }
+        
+        .answer-content { flex: 1; padding: 20px; overflow-y: auto; }
+        .question-card { display: none; }
+        .question-card.active { display: block; }
+        .question-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; color: var(--primary-dark); }
+        body.dark-mode .question-title { color: var(--primary); }
+        .question-text { margin-bottom: 15px; line-height: 1.6; }
+        
+        textarea.answer-area { width: 100%; min-height: 120px; padding: 15px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.6); resize: vertical; font-size: 1rem; line-height: 1.5; }
+        body.dark-mode textarea.answer-area { background: rgba(0,0,0,0.3); color: white; border-color: rgba(255,255,255,0.1); }
+        
+        .CodeMirror { height: 250px !important; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); }
+        body.dark-mode .CodeMirror { border-color: rgba(255,255,255,0.1); }
+
+        /* Results View */
+        #resultsView { display: none; padding: 40px 20px; min-height: 100vh; }
+        .results-container { max-width: 900px; margin: 0 auto; }
+        .score-card { text-align: center; padding: 40px; margin-bottom: 30px; }
+        .score-circle { width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(var(--success) var(--pct), rgba(0,0,0,0.1) var(--pct)); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; position: relative; }
+        .score-circle::after { content: ''; position: absolute; width: 130px; height: 130px; border-radius: 50%; background: var(--bg-light); }
+        body.dark-mode .score-circle::after { background: var(--bg-dark); }
+        .score-val { position: relative; z-index: 1; font-size: 2.5rem; font-weight: 700; }
+        .appreciation { font-size: 1.5rem; font-weight: 600; color: var(--success); margin-bottom: 10px; }
+        
+        .detail-card { padding: 20px; margin-bottom: 20px; }
+        .correction-item { padding: 15px; border-bottom: 1px solid rgba(0,0,0,0.1); }
+        body.dark-mode .correction-item { border-color: rgba(255,255,255,0.1); }
+        .correction-item:last-child { border-bottom: none; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; color: white; }
+        .status-correct { background: var(--success); }
+        .status-partial { background: var(--warning); }
+        .status-incorrect { background: var(--danger); }
+
+        /* Utils */
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; color: white; font-weight: 600; transform: translateX(400px); transition: transform 0.3s ease; z-index: 1000; display: flex; align-items: center; gap: 10px; }
+        .toast.show { transform: translateX(0); }
+        .toast-success { background: var(--success); }
+        .toast-error { background: var(--danger); }
+        .toast-warning { background: var(--warning); }
+        
+        .theme-toggle { position: fixed; top: 20px; right: 20px; z-index: 999; background: rgba(0,0,0,0.1); border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        body.dark-mode .theme-toggle { background: rgba(255,255,255,0.1); color: white; }
+
+        #antiCheatOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(239, 68, 68, 0.9); z-index: 9999; justify-content: center; align-items: center; color: white; font-size: 2rem; font-weight: bold; flex-direction: column; gap: 20px; }
+
+        .loader { display: none; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 4px solid var(--primary); width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+    <div id="antiCheatOverlay"><i class="fas fa-exclamation-triangle"></i> ATTENTION : Sortie détectée !<br><span style="font-size: 1rem; font-weight: normal;">Incident enregistré.</span></div>
+
+    <!-- HOME VIEW -->
+    <div id="homeView" class="container">
+        <div class="hero">
+            <h1><i class="fas fa-laptop-code"></i> Plateforme d'Évaluation Interactive</h1>
+            <p>NSI 2026 - Amérique du Nord - Jour 2</p>
+        </div>
+
+        <div class="setup-grid">
+            <!-- Import Card -->
+            <div class="card glass">
+                <h2><i class="fas fa-file-pdf" style="color: var(--danger);"></i> Documents d'examen</h2>
+                
+                <div class="form-group">
+                    <label>1️⃣ Sujet d'examen (Obligatoire)</label>
+                    <div class="drop-zone" id="subjectDropZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Glisser-déposer le PDF du sujet<br>ou cliquer pour sélectionner</p>
+                        <input type="file" accept="application/pdf" id="subjectFileInput" style="display: none;">
+                    </div>
+                    <div id="subjectFileInfo" class="file-info" style="display:none;">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="subjectFileName"></span>
+                        <i class="fas fa-times remove-file" onclick="removeFile('subject')"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>2️⃣ Corrigé (Optionnel - pour analyse)</label>
+                    <div class="drop-zone" id="correctionDropZone" style="border-color: var(--secondary);">
+                        <i class="fas fa-key" style="color: var(--secondary);"></i>
+                        <p>Glisser-déposer le PDF de correction</p>
+                        <input type="file" accept="application/pdf" id="correctionFileInput" style="display: none;">
+                    </div>
+                    <div id="correctionFileInfo" class="file-info" style="display:none;">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="correctionFileName"></span>
+                        <i class="fas fa-times remove-file" onclick="removeFile('correction')"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Card -->
+            <div class="card glass">
+                <h2><i class="fas fa-user-graduate" style="color: var(--primary);"></i> Informations candidat</h2>
+                <form id="studentForm">
+                    <div class="form-group">
+                        <label>Nom *</label>
+                        <input type="text" id="studentLastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Prénom *</label>
+                        <input type="text" id="studentFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail *</label>
+                        <input type="email" id="studentEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Classe / Groupe *</label>
+                        <input type="text" id="studentClass" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date et Heure</label>
+                        <input type="text" id="examDateTime" readonly>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;" id="startBtn" disabled>
+                        <i class="fas fa-play"></i> Commencer l'évaluation
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXAM VIEW -->
+    <div id="examView">
+        <div class="exam-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="btn btn-secondary" onclick="toggleFullscreen()"><i class="fas fa-expand"></i></button>
+                <span id="studentDisplayName" style="font-weight: 600;"></span>
+            </div>
+            <div class="timer" id="examTimer">02:10:00</div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="saveAndWarn()"><i class="fas fa-save"></i> Sauvegarder</button>
+                <button class="btn btn-danger" onclick="submitExam()"><i class="fas fa-paper-plane"></i> Soumettre</button>
+            </div>
+        </div>
+        
+        <div class="exam-content">
+            <div class="pdf-panel">
+                <div class="pdf-toolbar">
+                    <button onclick="prevPage()"><i class="fas fa-chevron-left"></i></button>
+                    <span>Page <span id="pageNum">1</span> / <span id="pageCount">0</span></span>
+                    <button onclick="nextPage()"><i class="fas fa-chevron-right"></i></button>
+                    <div style="flex:1;"></div>
+                    <button onclick="zoomOut()"><i class="fas fa-search-minus"></i></button>
+                    <button onclick="zoomIn()"><i class="fas fa-search-plus"></i></button>
+                </div>
+                <div id="pdfCanvasContainer">
+                    <canvas id="pdfRenderer"></canvas>
+                </div>
+            </div>
+
+            <div class="answer-panel">
+                <div class="question-nav" id="questionNav"></div>
+                <div class="answer-content" id="answerContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESULTS VIEW -->
+    <div id="resultsView">
+        <div class="results-container">
+            <div class="score-card glass">
+                <h2 style="margin-bottom: 20px;">Résultat de l'évaluation</h2>
+                <div class="score-circle" id="scoreCircle">
+                    <span class="score-val" id="finalScore">0/20</span>
+                </div>
+                <div class="appreciation" id="appreciation">En cours de calcul...</div>
+                <p id="studentResultInfo" style="opacity: 0.7;"></p>
+            </div>
+
+            <div class="detail-card glass">
+                <h3 style="margin-bottom: 15px;"><i class="fas fa-chart-pie"></i> Statistiques</h3>
+                <canvas id="statsChart" height="200"></canvas>
+            </div>
+
+            <div class="detail-card glass">
+                <h3 style="margin-bottom: 15px;"><i class="fas fa-shield-alt"></i> Rapport Anti-fraude</h3>
+                <div id="cheatReport" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.85rem;">
+                    Aucun incident détecté.
+                </div>
+            </div>
+
+            <div class="detail-card glass">
+                <h3 style="margin-bottom: 15px;"><i class="fas fa-check-double"></i> Correction détaillée</h3>
+                <div id="correctionDetails"></div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 20px;" onclick="exportPDF()">
+                <i class="fas fa-file-download"></i> Télécharger le rapport PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- JS Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // --- CORE CONFIG & DATA ---
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const EXAM_DATA = [
+            { id: "e1q1", ex: 1, num: 1, title: "États d'un processus", type: "text", points: 1, text: "Compléter le schéma des états d'un processus (prêt, élu, bloqué).", keywords: ["prêt", "élu", "bloqué", "élection", "blocage", "déblocage"] },
+            { id: "e1q7", ex: 1, num: 7, title: "Chronogramme Round-Robin", type: "text", points: 1, text: "Compléter le chronogramme du tourniquet (quantum = 2 ms).", keywords: ["P1|P2|P1|P3|P2|P4|P1|P3|P4|P3", "18 ms", "18ms", "fin à 18"] },
+            { id: "e1q9", ex: 1, num: 9, title: "Code execute_un_processus", type: "code", points: 1, text: "Compléter le code de la fonction execute_un_processus.", keywords: ["defiler", "processus['temps'] > quantum", "enfiler", "return t + quantum"] },
+            { id: "e2q2", ex: 2, num: 2, title: "Méthode ajouter_victoire", type: "code", points: 0.5, text: "Compléter le code de la méthode ajouter_victoire.", keywords: ["self.victoire", "+= 1", "adversaire.defaite"] },
+            { id: "e2q6", ex: 2, num: 6, title: "Méthode resultat_match", type: "code", points: 1, text: "Compléter le code de la méthode resultat_match.", keywords: ["for un_set in score", "un_set[0] > un_set[1]", "self.gagnante", "ajouter_victoire"] },
+            { id: "e3q3", ex: 3, num: 3, title: "Requête SQL Femmes", type: "code", points: 0.5, text: "Écrire une requête SQL renvoyant le nom et prénom des femmes inscrites.", keywords: ["SELECT", "nom, prenom", "FROM coureur", "WHERE sexe = 'F'"] },
+            { id: "e3q8", ex: 3, num: 8, title: "Requête Master Femme", type: "code", points: 1, text: "Requête SQL pour les participantes Master Femme (10 km) classées par temps.", keywords: ["SELECT", "FROM coureur", "JOIN epreuve", "sexe = 'F'", "annee < 1986", "distance = 10", "ORDER BY temps"] },
+            { id: "e3q16", ex: 3, num: 16, title: "Fonction records", type: "code", points: 1, text: "Écrire le code de la fonction records.", keywords: ["for i_cat in range", "for annee in dico", "meilleur = None", "temps < meilleur", "records_list.append"] }
+        ];
+
+        // --- CLASS: ExamManager ---
+        class ExamManager {
+            constructor() {
+                this.student = {};
+                this.answers = {};
+                this.incidents = [];
+                this.startTime = null;
+                this.duration = 2 * 3600 + 10 * 60; // 2h10
+                this.timeLeft = this.duration;
+                this.pdfDoc = null;
+                this.pdfScale = 1.5;
+                this.pdfPageNum = 1;
+                this.codemirrors = {};
+                
+                this.initUI();
+                this.loadState();
+            }
+
+            initUI() {
+                document.getElementById('examDateTime').value = new Date().toLocaleString('fr-FR');
+                
+                // File Inputs
+                this.setupDropZone('subjectDropZone', 'subjectFileInput', 'subject');
+                this.setupDropZone('correctionDropZone', 'correctionFileInput', 'correction');
+
+                // Form
+                document.getElementById('studentForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.startExam();
+                });
+
+                // Questions
+                const nav = document.getElementById('questionNav');
+                const content = document.getElementById('answerContent');
+                EXAM_DATA.forEach((q, i) => {
+                    // Tab
+                    const tab = document.createElement('div');
+                    tab.className = `q-tab ${i===0?'active':''}`;
+                    tab.innerText = `Ex${q.ex} Q${q.num}`;
+                    tab.onclick = () => this.showQuestion(i);
+                    nav.appendChild(tab);
+
+                    // Card
+                    const card = document.createElement('div');
+                    card.className = `question-card ${i===0?'active':''}`;
+                    card.id = `qcard-${i}`;
+                    card.innerHTML = `
+                        <div class="question-title">Exercice ${q.ex} - Question ${q.num} (${q.points} pt)</div>
+                        <div class="question-text">${q.text}</div>
+                        ${q.type === 'code' ? `<textarea id="cm-${q.id}"></textarea>` : `<textarea class="answer-area" id="ans-${q.id}" placeholder="Votre réponse..."></textarea>`}
+                    `;
+                    content.appendChild(card);
+                });
+            }
+
+            setupDropZone(zoneId, inputId, type) {
+                const zone = document.getElementById(zoneId);
+                const input = document.getElementById(inputId);
+
+                zone.addEventListener('click', () => input.click());
+                zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+                zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('dragover');
+                    this.handleFile(e.dataTransfer.files[0], type);
+                });
+                input.addEventListener('change', (e) => this.handleFile(e.target.files[0], type));
+            }
+
+            handleFile(file, type) {
+                if (!file || file.type !== 'application/pdf') {
+                    showToast('Veuillez sélectionner un fichier PDF valide.', 'error');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (type === 'subject') {
+                        this.subjectData = new Uint8Array(e.target.result);
+                        document.getElementById('subjectFileInfo').style.display = 'flex';
+                        document.getElementById('subjectFileName').innerText = file.name;
+                        document.getElementById('startBtn').disabled = false;
+                    } else {
+                        document.getElementById('correctionFileInfo').style.display = 'flex';
+                        document.getElementById('correctionFileName').innerText = file.name;
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            startExam() {
+                this.student = {
+                    lastName: document.getElementById('studentLastName').value,
+                    firstName: document.getElementById('studentFirstName').value,
+                    email: document.getElementById('studentEmail').value,
+                    className: document.getElementById('studentClass').value
+                };
+                
+                document.getElementById('homeView').style.display = 'none';
+                document.getElementById('examView').style.display = 'flex';
+                document.getElementById('studentDisplayName').innerText = `${this.student.firstName} ${this.student.lastName}`;
+                
+                this.loadPDF(this.subjectData);
+                this.initCodeMirrors();
+                this.startTimer();
+                new AntiCheatSystem(this);
+                new AutoSaveManager(this);
+                
+                try { document.documentElement.requestFullscreen(); } catch(e) {}
+            }
+
+            async loadPDF(data) {
+                try {
+                    this.pdfDoc = await pdfjsLib.getDocument({data: data}).promise;
+                    document.getElementById('pageCount').textContent = this.pdfDoc.numPages;
+                    this.renderPage(1);
+                } catch(err) {
+                    console.error("PDF Load Error:", err);
+                    showToast("Erreur de chargement du PDF", "error");
+                }
+            }
+
+            async renderPage(num) {
+                if (!this.pdfDoc) return;
+                this.pdfPageNum = num;
+                document.getElementById('pageNum').textContent = num;
+                const page = await this.pdfDoc.getPage(num);
+                const viewport = page.getViewport({scale: this.pdfScale});
+                const canvas = document.getElementById('pdfRenderer');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                const ctx = canvas.getContext('2d');
+                await page.render({canvasContext: ctx, viewport: viewport}).promise;
+            }
+
+            initCodeMirrors() {
+                EXAM_DATA.filter(q => q.type === 'code').forEach(q => {
+                    this.codemirrors[q.id] = CodeMirror.fromTextArea(document.getElementById(`cm-${q.id}`), {
+                        mode: "python",
+                        theme: "dracula",
+                        lineNumbers: true,
+                        autoCloseBrackets: true,
+                        indentUnit: 4,
+                        matchBrackets: true
+                    });
+                    this.codemirrors[q.id].on('change', (cm) => {
+                        this.answers[q.id] = cm.getValue();
+                    });
+                });
+            }
+
+            showQuestion(index) {
+                document.querySelectorAll('.q-tab').forEach((t,i) => t.classList.toggle('active', i===index));
+                document.querySelectorAll('.question-card').forEach((c,i) => c.classList.toggle('active', i===index));
+                // Refresh CM if visible
+                const q = EXAM_DATA[index];
+                if(q.type === 'code' && this.codemirrors[q.id]) {
+                    setTimeout(() => this.codemirrors[q.id].refresh(), 10);
+                }
+            }
+
+            startTimer() {
+                this.startTime = Date.now();
+                this.timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                    this.timeLeft = this.duration - elapsed;
+                    
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.timerInterval);
+                        this.submitExam();
+                        return;
+                    }
+
+                    const h = Math.floor(this.timeLeft / 3600);
+                    const m = Math.floor((this.timeLeft % 3600) / 60);
+                    const s = this.timeLeft % 60;
+                    const display = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                    
+                    const timerEl = document.getElementById('examTimer');
+                    timerEl.innerText = display;
+                    timerEl.className = 'timer';
+                    if (this.timeLeft < 300) timerEl.classList.add('critical');
+                    else if (this.timeLeft < 900) timerEl.classList.add('warning');
+                    
+                }, 1000);
+            }
+
+            collectAnswers() {
+                EXAM_DATA.forEach(q => {
+                    if(q.type === 'text') {
+                        this.answers[q.id] = document.getElementById(`ans-${q.id}`).value;
+                    } else if(this.codemirrors[q.id]) {
+                        this.answers[q.id] = this.codemirrors[q.id].getValue();
+                    }
+                });
+                return this.answers;
+            }
+
+            submitExam() {
+                clearInterval(this.timerInterval);
+                this.collectAnswers();
+                try { document.exitFullscreen(); } catch(e) {}
+                
+                const engine = new CorrectionEngine(this.answers, EXAM_DATA);
+                const results = engine.evaluate();
+                
+                const view = new ResultsView(this.student, results, this.incidents);
+                view.render();
+            }
+
+            logIncident(type, desc) {
+                const incident = { type, time: new Date().toLocaleTimeString(), desc };
+                this.incidents.push(incident);
+                showToast(`Incident détecté : ${type}`, 'error');
+                const overlay = document.getElementById('antiCheatOverlay');
+                overlay.style.display = 'flex';
+                setTimeout(() => overlay.style.display = 'none', 2000);
+            }
+
+            saveState() {
+                this.collectAnswers();
+                const state = {
+                    student: this.student,
+                    answers: this.answers,
+                    timeLeft: this.timeLeft,
+                    incidents: this.incidents
+                };
+                localStorage.setItem('nsi_exam_state', JSON.stringify(state));
+                showToast('Progression sauvegardée', 'success');
+            }
+
+            loadState() {
+                const saved = localStorage.getItem('nsi_exam_state');
+                if(saved) {
+                    const state = JSON.parse(saved);
+                    if(state.student && state.student.lastName) {
+                        document.getElementById('studentLastName').value = state.student.lastName || '';
+                        document.getElementById('studentFirstName').value = state.student.firstName || '';
+                        document.getElementById('studentEmail').value = state.student.email || '';
+                        document.getElementById('studentClass').value = state.student.className || '';
+                        // Deep restore is complex for a single file, typically handled by AutoSave on exam start
+                    }
+                }
+            }
+        }
+
+        // --- CLASS: AntiCheatSystem ---
+        class AntiCheatSystem {
+            constructor(manager) {
+                this.manager = manager;
+                this.init();
+            }
+            init() {
+                document.addEventListener('visibilitychange', () => {
+                    if(document.hidden) this.manager.logIncident('Changement d\'onglet', 'L\'utilisateur a quitté l\'onglet');
+                });
+
+                window.addEventListener('blur', () => {
+                    this.manager.logIncident('Perte de focus', 'Fenêtre inactive');
+                });
+
+                document.addEventListener('fullscreenchange', () => {
+                    if(!document.fullscreenElement) this.manager.logIncident('Sortie plein écran', 'L\'utilisateur a quitté le mode plein écran');
+                });
+
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.manager.logIncident('Clic droit', 'Tentative d\'ouverture du menu contextuel');
+                });
+
+                document.addEventListener('copy', (e) => {
+                    e.preventDefault();
+                    this.manager.logIncident('Copie', 'Tentative de copie de texte');
+                });
+
+                document.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    this.manager.logIncident('Collage', 'Tentative de collage de texte');
+                });
+            }
+        }
+
+        // --- CLASS: AutoSaveManager ---
+        class AutoSaveManager {
+            constructor(manager) {
+                this.manager = manager;
+                this.interval = setInterval(() => this.manager.saveState(), 10000); // 10s
+            }
+        }
+
+        // --- CLASS: CorrectionEngine ---
+        class CorrectionEngine {
+            constructor(answers, data) {
+                this.answers = answers;
+                this.data = data;
+            }
+            evaluate() {
+                let totalPoints = 0;
+                let maxPoints = 0;
+                const details = [];
+
+                this.data.forEach(q => {
+                    maxPoints += q.points;
+                    const ans = (this.answers[q.id] || "").toLowerCase();
+                    let score = 0;
+                    let status = 'incorrect';
+                    let matchedKeywords = [];
+
+                    // Simple keyword matching with fuzzy tolerance
+                    q.keywords.forEach(kw => {
+                        if(ans.includes(kw.toLowerCase())) {
+                            matchedKeywords.push(kw);
+                        }
+                    });
+
+                    const matchRatio = matchedKeywords.length / q.keywords.length;
+
+                    if(matchRatio >= 0.8) { // 80% keywords = full point
+                        score = q.points;
+                        status = 'correct';
+                    } else if(matchRatio >= 0.4) { // 40% keywords = partial
+                        score = q.points * 0.5;
+                        status = 'partial';
+                    }
+
+                    totalPoints += score;
+                    details.push({
+                        id: q.id,
+                        title: q.title,
+                        status: status,
+                        score: score,
+                        maxScore: q.points,
+                        matched: matchedKeywords,
+                        expected: q.keywords
+                    });
+                });
+
+                const finalScore20 = (totalPoints / maxPoints) * 20;
+
+                return {
+                    totalPoints,
+                    maxPoints,
+                    finalScore20: Math.round(finalScore20 * 2) / 2, // Arrondi 0.5
+                    details,
+                    appreciation: this.getAppreciation(finalScore20)
+                };
+            }
+
+            getAppreciation(score) {
+                if(score >= 16) return "Excellent";
+                if(score >= 14) return "Bien";
+                if(score >= 12) return "Assez Bien";
+                if(score >= 10) return "Passable";
+                return "Insuffisant";
+            }
+        }
+
+        // --- CLASS: ResultsView ---
+        class ResultsView {
+            constructor(student, results, incidents) {
+                this.student = student;
+                this.results = results;
+                this.incidents = incidents;
+            }
+
+            render() {
+                document.getElementById('examView').style.display = 'none';
+                document.getElementById('resultsView').style.display = 'block';
+
+                const score = this.results.finalScore20;
+                document.getElementById('finalScore').innerText = `${score}/20`;
+                document.getElementById('scoreCircle').style.setProperty('--pct', `${(score/20)*100}%`);
+                document.getElementById('appreciation').innerText = this.results.appreciation;
+                document.getElementById('studentResultInfo').innerText = `${this.student.firstName} ${this.student.lastName} - ${this.student.className}`;
+
+                // Chart
+                const ctx = document.getElementById('statsChart').getContext('2d');
+                const correct = this.results.details.filter(d => d.status === 'correct').length;
+                const partial = this.results.details.filter(d => d.status === 'partial').length;
+                const incorrect = this.results.details.filter(d => d.status === 'incorrect').length;
+
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Correct', 'Partiel', 'Incorrect'],
+                        datasets: [{
+                            data: [correct, partial, incorrect],
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+
+                // Incidents
+                const cheatDiv = document.getElementById('cheatReport');
+                if(this.incidents.length > 0) {
+                    cheatDiv.innerHTML = this.incidents.map(i => `<div>[${i.time}] <b>${i.type}</b> - ${i.desc}</div>`).join('');
+                }
+
+                // Details
+                const corrDiv = document.getElementById('correctionDetails');
+                corrDiv.innerHTML = this.results.details.map(d => `
+                    <div class="correction-item">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <b>${d.title}</b>
+                            <span class="status-badge status-${d.status}">${d.status === 'correct' ? '✔ Correct' : d.status === 'partial' ? '⚠ Partiel' : '❌ Incorrect'}</span>
+                        </div>
+                        <div style="font-size:0.9rem; color:#64748b;">
+                            Score : ${d.score}/${d.maxScore}<br>
+                            Mots-clés trouvés : <i>${d.matched.join(', ') || 'Aucun'}</i><br>
+                            Attendus : <i>${d.expected.join(', ')}</i>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // --- CLASS: ExportManager (Integrated) ---
+        async function exportPDF() {
+            showToast("Génération du PDF en cours...", "warning");
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(22);
+            doc.text("Rapport d'Évaluation - NSI 2026", 105, 20, { align: "center" });
+            
+            doc.setFontSize(12);
+            doc.text(`Élève : ${app.student.firstName} ${app.student.lastName}`, 20, 40);
+            doc.text(`Classe : ${app.student.className}`, 20, 50);
+            doc.text(`Note Finale : ${app.results.finalScore20}/20 - ${app.results.appreciation}`, 20, 60);
+            
+            doc.line(20, 65, 190, 65);
+            doc.text("Détail des réponses :", 20, 75);
+            
+            let y = 85;
+            app.results.details.forEach(d => {
+                if(y > 270) { doc.addPage(); y = 20; }
+                doc.setFont(undefined, 'bold');
+                doc.text(`${d.title} (${d.score}/${d.maxScore})`, 20, y);
+                doc.setFont(undefined, 'normal');
+                y += 7;
+                doc.text(`Statut : ${d.status}`, 25, y);
+                y += 7;
+            });
+
+            doc.save(`Evaluation_NSI_${app.student.lastName}.pdf`);
+            showToast("PDF téléchargé !", "success");
+        }
+
+        // --- UI Helpers ---
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'exclamation-circle'}"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.querySelector('.theme-toggle i');
+            icon.className = document.body.classList.contains('dark-mode') ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        function toggleFullscreen() {
+            if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        }
+
+        function removeFile(type) {
+            if(type === 'subject') {
+                document.getElementById('subjectFileInfo').style.display = 'none';
+                document.getElementById('startBtn').disabled = true;
+                app.subjectData = null;
+            } else {
+                document.getElementById('correctionFileInfo').style.display = 'none';
+            }
+        }
+
+        function saveAndWarn() { app.saveState(); }
+
+        // PDF Controls
+        function prevPage() { if(app.pdfDoc && app.pdfPageNum > 1) app.renderPage(app.pdfPageNum - 1); }
+        function nextPage() { if(app.pdfDoc && app.pdfPageNum < app.pdfDoc.numPages) app.renderPage(app.pdfPageNum + 1); }
+        function zoomIn() { app.pdfScale = Math.min(3, app.pdfScale + 0.2); app.renderPage(app.pdfPageNum); }
+        function zoomOut() { app.pdfScale = Math.max(0.5, app.pdfScale - 0.2); app.renderPage(app.pdfPageNum); }
+
+        function submitExam() { 
+            if(confirm("Êtes-vous sûr de vouloir soumettre votre copie ? Cette action est irréversible.")) {
+                app.submitExam(); 
+            } 
+        }
+
+        // --- INIT ---
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new ExamManager();
+        });
+    </script>
+</body>
+</html>
