@@ -114,9 +114,9 @@
         .exercise-header { background: linear-gradient(to right, var(--primary), var(--secondary)); color: white; padding: 15px 20px; font-weight: 700; font-size: 1.1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .exercise-header i { transition: transform 0.3s; }
         .exercise-header.active i { transform: rotate(180deg); }
-        .exercise-body { background: rgba(255,255,255,0.6); max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+        .exercise-body { background: rgba(255,255,255,0.6); max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out; }
         body.dark-mode .exercise-body { background: rgba(15, 23, 42, 0.6); }
-        .exercise-body.active { max-height: 5000px; /* Large value */ padding: 20px; }
+        .exercise-body.active { max-height: 10000px; /* Large value */ padding: 20px; }
         
         .question-card { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px dashed rgba(0,0,0,0.1); }
         .question-card:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -128,7 +128,7 @@
         .question-text { margin-bottom: 15px; line-height: 1.5; font-size: 0.95rem; color: #475569; }
         body.dark-mode .question-text { color: #cbd5e1; }
         
-        textarea.answer-area { width: 100%; min-height: 100px; padding: 15px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); resize: none; font-size: 1rem; line-height: 1.5; overflow: hidden; transition: border-color 0.2s; }
+        textarea.answer-area { width: 100%; min-height: 80px; padding: 15px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); resize: none; font-size: 1rem; line-height: 1.5; overflow: hidden; transition: border-color 0.2s; }
         body.dark-mode textarea.answer-area { background: rgba(0,0,0,0.4); color: white; border-color: rgba(255,255,255,0.1); }
         textarea.answer-area:focus { outline: none; border-color: var(--primary); }
         
@@ -200,7 +200,7 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>2️⃣ Corrigé (Optionnel - pour correction auto)</label>
+                    <label>2️⃣ Corrigé (Optionnel)</label>
                     <div class="drop-zone" id="correctionDropZone" style="border-color: var(--secondary);">
                         <i class="fas fa-key" style="color: var(--secondary);"></i>
                         <p>Glisser-déposer le PDF de correction</p>
@@ -223,7 +223,7 @@
                     <div class="form-group"><label>Classe / Groupe *</label><input type="text" id="studentClass" required></div>
                     <div class="form-group"><label>Date et Heure</label><input type="text" id="examDateTime" readonly style="opacity:0.6;"></div>
                     <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;" id="startBtn" disabled>
-                        <i class="fas fa-play"></i> Commencer l'évaluation
+                        <i class="fas fa-play"></i> Commencer l'évaluation (3h30)
                     </button>
                 </form>
             </div>
@@ -239,7 +239,7 @@
                 <span id="incidentCounter" class="incident-badge" style="display:none;">0</span>
             </div>
             <div class="header-center">
-                <div class="timer" id="examTimer">02:10:00</div>
+                <div class="timer" id="examTimer">03:30:00</div>
                 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
             </div>
             <div style="display: flex; gap: 10px;">
@@ -309,22 +309,57 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+        // COMPLETE SUBJECT DATA (16 Questions)
         const EXAM_DATA = [
+            // --- EXERCICE 1 (10 Questions) ---
             { id: "e1q1", ex: 1, num: 1, title: "États d'un processus", type: "text", points: 1, text: "Compléter le schéma des états d'un processus (prêt, élu, bloqué).", keywords: ["prêt", "élu", "bloqué", "élection", "blocage", "déblocage"] },
-            { id: "e1q7", ex: 1, num: 7, title: "Chronogramme Round-Robin", type: "text", points: 1, text: "Compléter le chronogramme du tourniquet (quantum = 2 ms). P1(arr=0,dur=6), P2(arr=1,dur=4), P3(arr=3,dur=5), P4(arr=5,dur=3).", keywords: ["P1|P2|P1|P3|P2|P4|P1|P3|P4|P3", "18 ms", "18ms"] },
-            { id: "e1q9", ex: 1, num: 9, title: "Code execute_un_processus", type: "code", points: 1, text: "Compléter le code de la fonction execute_un_processus(file_d_attente, t).", keywords: ["defiler", "processus['temps'] > quantum", "processus['temps'] = processus['temps'] - quantum", "enfiler", "return t + quantum"] },
-            { id: "e2q2", ex: 2, num: 2, title: "Méthode ajouter_victoire", type: "code", points: 0.5, text: "Compléter la méthode def ajouter_victoire(self, adversaire).", keywords: ["self.victoire += 1", "adversaire.defaite += 1"] },
-            { id: "e2q6", ex: 2, num: 6, title: "Méthode resultat_match", type: "code", points: 1, text: "Compléter la méthode resultat_match enregistrant le score, calculant les sets et mettant à jour les joueuses.", keywords: ["for un_set in score", "if un_set[0] > un_set[1]:", "self.gagnante = self.joueuse1", "ajouter_victoire"] },
-            { id: "e3q3", ex: 3, num: 3, title: "Requête SQL Femmes", type: "code", points: 0.5, text: "Écrire la requête SQL renvoyant le nom et prénom des femmes inscrites.", keywords: ["SELECT", "nom, prenom", "FROM coureur", "WHERE sexe = 'F'"] },
-            { id: "e3q8", ex: 3, num: 8, title: "Requête Master Femme", type: "code", points: 1, text: "Requête SQL pour les participantes Master Femme (10 km, nées avant 1986) classées par temps.", keywords: ["SELECT", "FROM coureur", "JOIN epreuve", "sexe = 'F'", "annee < 1986", "distance = 10", "ORDER BY temps"] },
-            { id: "e3q16", ex: 3, num: 16, title: "Fonction records", type: "code", points: 1, text: "Écrire le code de la fonction records(dico) renvoyant la liste des records par catégorie.", keywords: ["for i_cat in range", "for annee in dico", "meilleur = None", "temps < meilleur", "records_list.append"] }
+            { id: "e1q2", ex: 1, num: 2, title: "État de P1, P2, P3", type: "text", points: 1, text: "Indiquer l'état de chacun des processus P1 (arrière-plan), P2 (attente WiFi) et P3 (musique).", keywords: ["bloqué", "bloqué", "élu"] },
+            { id: "e1q3", ex: 1, num: 3, title: "Interblocage", type: "text", points: 1, text: "Expliquer, de façon générale, quand un interblocage de processus peut survenir.", keywords: ["cycle", "attente", "ressource", "bloquant"] },
+            { id: "e1q4", ex: 1, num: 4, title: "Justification interblocage", type: "text", points: 1, text: "Justifier qu'une situation d'interblocage peut se produire avec P1, P2, P3, P4.", keywords: ["cycle", "p1", "p2", "mic", "cal"] },
+            { id: "e1q5", ex: 1, num: 5, title: "Multi-processeurs", type: "text", points: 0.5, text: "Expliquer l'intérêt d'une machine équipée de plusieurs processeurs plutôt que d'un seul.", keywords: ["parallélisme", "même temps", "performance", "coeur"] },
+            { id: "e1q6", ex: 1, num: 6, title: "Systèmes sur puce", type: "text", points: 0.5, text: "Décrire un avantage et un inconvénient des systèmes sur puces (SoC).", keywords: ["intégration", "consommation", "modulable", "panne"] },
+            { id: "e1q7", ex: 1, num: 7, title: "Chronogramme Round-Robin", type: "text", points: 1, text: "Compléter le chronogramme du tourniquet (quantum = 2 ms).", keywords: ["P1", "P2", "P3", "P4", "18 ms", "18ms"] },
+            { id: "e1q8", ex: 1, num: 8, title: "Création file fp", type: "code", mode: "python", points: 0.5, text: "Créer la file fp contenant P1, P2, P3, P4 classés par ordre d'arrivée.", keywords: ["creer_file_vide", "enfiler", "p1", "p2", "p3", "p4"] },
+            { id: "e1q9", ex: 1, num: 9, title: "Code execute_un_processus", type: "code", mode: "python", points: 1, text: "Compléter le code de la fonction execute_un_processus(file_d_attente, t).", keywords: ["defiler", "processus['temps'] > quantum", "processus['temps']", "enfiler", "return t + quantum"] },
+            { id: "e1q10", ex: 1, num: 10, title: "Code execute_tous_processus", type: "code", mode: "python", points: 0.5, text: "Compléter le code de la fonction execute_tous_processus(file_d_attente).", keywords: ["est_vide", "execute_un_processus", "return t"] },
+
+            // --- EXERCICE 2 (11 Questions) ---
+            { id: "e2q1", ex: 2, num: 1, title: "Instanciation pegula", type: "code", mode: "python", points: 0.5, text: "Instancier l'objet pegula (Jessica Pegula, USA, 29 ans, 6101 pts WTA).", keywords: ["joueuse", "pegula", "jessica", "usa", "29", "6101"] },
+            { id: "e2q2", ex: 2, num: 2, title: "Méthode ajouter_victoire", type: "code", mode: "python", points: 0.5, text: "Compléter la méthode def ajouter_victoire(self, adversaire).", keywords: ["self.victoire", "+= 1", "adversaire.defaite"] },
+            { id: "e2q3", ex: 2, num: 3, title: "Finale Swiatek/Paloni", type: "code", mode: "python", points: 0.5, text: "Écrire l'instruction pour prendre en compte la finale (Paloni battue par Swiatek).", keywords: ["swiatek.ajouter_victoire", "paloni"] },
+            { id: "e2q4", ex: 2, num: 4, title: "Coût tri par insertion", type: "text", points: 0.5, text: "Préciser le coût temporel du tri par insertion dans le pire des cas.", keywords: ["o(n²)", "quadratique", "n^2"] },
+            { id: "e2q5", ex: 2, num: 5, title: "Étapes tri par insertion", type: "text", points: 1, text: "Compléter le tableau des étapes du tri par insertion sur liste_joueuses.", keywords: ["gauff", "paloni", "pegula", "swiatek", "sabalenka"] },
+            { id: "e2q6", ex: 2, num: 6, title: "Méthode resultat_match", type: "code", mode: "python", points: 1, text: "Compléter la méthode resultat_match(self, score).", keywords: ["for un_set in score", "un_set[0]", "un_set[1]", "self.gagnante", "self.perdante", "ajouter_victoire"] },
+            { id: "e2q7", ex: 2, num: 7, title: "Arbre binaire tournoi", type: "text", points: 0.5, text: "Justifier qu'un tournoi de tennis peut être modélisé à l'aide d'un arbre binaire.", keywords: ["deux", "fils", "match", "binaire", "joueuses"] },
+            { id: "e2q8", ex: 2, num: 8, title: "Instanciation tournoi", type: "code", mode: "python", points: 0.5, text: "Instancier la variable tournoi de la classe Arbre représentant le tournoi.", keywords: ["arbre", "none", "arbre_q1", "arbre_d1"] },
+            { id: "e2q9", ex: 2, num: 9, title: "Mise à jour D1", type: "code", mode: "python", points: 0.5, text: "Compléter l'instruction pour mettre à jour la joueuse1 de D1 avec gauff.", keywords: ["gauche", "racine", "joueuse1", "gauff"] },
+            { id: "e2q10", ex: 2, num: 10, title: "Programme récursif", type: "text", points: 0.5, text: "Rappeler ce qu'est un programme récursif.", keywords: ["appelle", "lui-même", "arrêt", "base"] },
+            { id: "e2q11", ex: 2, num: 11, title: "Méthode mise_a_jour", type: "code", mode: "python", points: 1, text: "Compléter les lignes 6, 7, 13, 14 et 16 de la méthode mise_a_jour(self).", keywords: ["gauche.racine.gagnante", "self.racine.joueuse1", "droit.mise_a_jour"] },
+
+            // --- EXERCICE 3 (16 Questions) ---
+            { id: "e3q1", ex: 3, num: 1, title: "Clé primaire num_dossard", type: "text", points: 0.5, text: "Expliquer le choix de num_dossard comme clé primaire pour la relation coureur.", keywords: ["unique", "doublon", "identification"] },
+            { id: "e3q2", ex: 3, num: 2, title: "Requête SELECT ORDER BY", type: "text", points: 0.5, text: "Décrire ce que renvoie la requête SELECT nom, prenom FROM coureur ORDER BY nom.", keywords: ["nom", "prénom", "triés", "alphabétique", "croissant"] },
+            { id: "e3q3", ex: 3, num: 3, title: "Requête SQL Femmes", type: "code", mode: "sql", points: 0.5, text: "Écrire la requête SQL renvoyant le nom et prénom des femmes inscrites.", keywords: ["select", "from coureur", "where sexe = 'f'"] },
+            { id: "e3q4", ex: 3, num: 4, title: "Requête SQL COUNT", type: "code", mode: "sql", points: 0.5, text: "Écrire une requête SQL renvoyant le nombre total d'inscrits.", keywords: ["select count", "from coureur"] },
+            { id: "e3q5", ex: 3, num: 5, title: "Requête INSERT", type: "code", mode: "sql", points: 1, text: "Écrire une requête SQL pour insérer Patrice REMY (homme, 1973, course 5km id=1).", keywords: ["insert into", "values", "remy", "patrice", "1973", "'h'"] },
+            { id: "e3q6", ex: 3, num: 6, title: "Requête DELETE", type: "code", mode: "sql", points: 0.5, text: "Écrire une requête SQL pour supprimer le coureur n°137 (blessé).", keywords: ["delete from", "where num_dossard = 137"] },
+            { id: "e3q7", ex: 3, num: 7, title: "Requête JOIN", type: "code", mode: "sql", points: 1, text: "Écrire une requête SQL fournissant la distance et l'horaire du coureur n°256.", keywords: ["select", "from coureur", "join epreuve", "on coureur.id_epreuve = epreuve.id_epreuve", "where num_dossard = 256"] },
+            { id: "e3q8", ex: 3, num: 8, title: "Requête Master Femme", type: "code", mode: "sql", points: 1, text: "Requête SQL pour les participantes Master Femme (10 km, nées avant 1986) classées par temps.", keywords: ["select", "join", "sexe = 'f'", "annee < 1986", "distance = 10", "order by temps"] },
+            { id: "e3q9", ex: 3, num: 9, title: "Valeur dictionnaire", type: "text", points: 0.5, text: "Donner la valeur de l'expression dict_perf_5km[2025][2].", keywords: ["1000"] },
+            { id: "e3q10", ex: 3, num: 10, title: "Ajout résultats 2026", type: "code", mode: "python", points: 0.5, text: "Écrire l'instruction pour ajouter les résultats 2026 dans dict_perf_5km.", keywords: ["dict_perf_5km[2026]", "1004", "1016", "1000", "1140", "1023", "1024"] },
+            { id: "e3q11", ex: 3, num: 11, title: "Fonction scratch", type: "code", mode: "python", points: 0.5, text: "Écrire le code de la fonction scratch(dico, annee) (meilleur temps toutes catégories).", keywords: ["dico[annee]", "meilleur", "< meilleur", "return meilleur"] },
+            { id: "e3q12", ex: 3, num: 12, title: "Valeur i_cat", type: "text", points: 0.5, text: "Indiquer la valeur de i_cat lors de l'appel mystere(dict_perf_5km, 'SH').", keywords: ["2"] },
+            { id: "e3q13", ex: 3, num: 13, title: "Message d'erreur 'SG'", type: "text", points: 0.5, text: "Indiquer le message d'erreur renvoyé par mystere(dict_perf_5km, 'SG').", keywords: ["referenced before assignment", "i_cat"] },
+            { id: "e3q14", ex: 3, num: 14, title: "Assertion catégorie", type: "code", mode: "python", points: 0.5, text: "Proposer une assertion entre la ligne 2 et la ligne 3 pour signaler une faute de saisie.", keywords: ["assert", "cat in", "categories"] },
+            { id: "e3q15", ex: 3, num: 15, title: "Résultat mystere 'SH'", type: "text", points: 0.5, text: "Indiquer le résultat de l'appel mystere(dict_perf_5km, 'SH').", keywords: ["1000", "1000.0"] },
+            { id: "e3q16", ex: 3, num: 16, title: "Fonction records", type: "code", mode: "python", points: 1, text: "Écrire le code de la fonction records(dico) renvoyant la liste des records par catégorie.", keywords: ["for i_cat", "for annee in dico", "meilleur = none", "temps < meilleur", "records_list.append"] }
         ];
 
         // --- CLASS: ExamManager ---
@@ -334,7 +369,7 @@
                 this.answers = {};
                 this.incidents = [];
                 this.startTime = null;
-                this.duration = 2 * 3600 + 10 * 60; 
+                this.duration = 3 * 3600 + 30 * 60; // 3h30
                 this.timeLeft = this.duration;
                 this.pdfDoc = null;
                 this.pdfScale = 1.2;
@@ -428,12 +463,11 @@
                 targetBody.classList.add('active');
                 targetHeader.classList.add('active');
 
-                // Refresh CodeMirrors inside the newly opened exercise
+                // Refresh CodeMirrors & Textareas
                 setTimeout(() => {
                     EXAM_DATA.filter(q => q.ex == exNum && q.type === 'code').forEach(q => {
                         if(this.codemirrors[q.id]) this.codemirrors[q.id].refresh();
                     });
-                    // Auto resize textareas
                     targetBody.querySelectorAll('textarea.answer-area').forEach(ta => {
                         ta.style.height = 'auto';
                         ta.style.height = ta.scrollHeight + 'px';
@@ -488,7 +522,7 @@
                 
                 this.loadPDF(this.subjectData);
                 this.initCodeMirrors();
-                this.toggleExercise(1); // Open first exercise
+                this.toggleExercise(1); 
                 this.startTimer();
                 this.initAutoResize();
                 new AntiCheatSystem(this);
@@ -502,7 +536,7 @@
                     this.pdfDoc = await pdfjsLib.getDocument({data: data}).promise;
                     document.getElementById('pageCount').textContent = this.pdfDoc.numPages;
                     document.getElementById('pageNumInput').max = this.pdfDoc.numPages;
-                    this.fitWidth(); // Initial fit
+                    this.fitWidth(); 
                 } catch(err) {
                     console.error("PDF Load Error:", err);
                     showToast("Erreur de chargement du PDF", "error");
@@ -544,11 +578,9 @@
                 const containerWidth = container.clientWidth - 40;
                 const page = await this.pdfDoc.getPage(this.pdfPageNum);
                 const viewport = page.getViewport({ scale: 1 });
-                
                 const scaleW = containerWidth / viewport.width;
                 const scaleH = containerHeight / viewport.height;
                 this.pdfScale = Math.min(scaleW, scaleH);
-                
                 this.updateZoomUI();
                 this.renderPage(this.pdfPageNum);
             }
@@ -556,7 +588,7 @@
             initCodeMirrors() {
                 EXAM_DATA.filter(q => q.type === 'code').forEach(q => {
                     this.codemirrors[q.id] = CodeMirror.fromTextArea(document.getElementById(`cm-${q.id}`), {
-                        mode: "python",
+                        mode: q.mode === 'sql' ? 'text/x-sql' : 'python',
                         theme: "dracula",
                         lineNumbers: true,
                         autoCloseBrackets: true,
@@ -597,7 +629,6 @@
                     if (this.timeLeft < 300) timerEl.classList.add('critical');
                     else if (this.timeLeft < 900) timerEl.classList.add('warning');
 
-                    // Update progress bar
                     const progress = (elapsed / this.duration) * 100;
                     document.getElementById('progressBar').style.width = `${progress}%`;
                     
@@ -639,7 +670,7 @@
                 const overlay = document.getElementById('antiCheatOverlay');
                 overlay.style.display = 'block';
                 overlay.style.animation = 'none';
-                overlay.offsetHeight; /* trigger reflow */
+                overlay.offsetHeight; 
                 overlay.style.animation = 'slideDown 0.5s ease-out forwards';
                 setTimeout(() => overlay.style.display = 'none', 500);
             }
@@ -715,6 +746,7 @@
                     details.push({ id: q.id, title: `Ex${q.ex} Q${q.num}: ${q.title}`, status, score, maxScore: q.points, matched: matchedKeywords, expected: q.keywords });
                 });
 
+                // Scale to 20 automatically
                 const finalScore20 = (totalPoints / maxPoints) * 20;
                 return { totalPoints, maxPoints, finalScore20: Math.round(finalScore20 * 2) / 2, details, appreciation: this.getAppreciation(finalScore20) };
             }
@@ -731,7 +763,7 @@
                 document.getElementById('finalScore').innerText = `${score}/20`;
                 document.getElementById('scoreCircle').style.setProperty('--pct', `${(score/20)*100}%`);
                 document.getElementById('appreciation').innerText = this.results.appreciation;
-                document.getElementById('studentResultInfo').innerText = `${this.student.firstName} ${this.student.lastName} - ${this.student.className}`;
+                document.getElementById('studentResultInfo').innerText = `${this.student.firstName} ${this.student.lastName} - ${this.student.className} (Total Brut: ${this.results.totalPoints}/${this.results.maxPoints})`;
 
                 const ctx = document.getElementById('statsChart').getContext('2d');
                 const correct = this.results.details.filter(d => d.status === 'correct').length;
